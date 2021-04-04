@@ -4,7 +4,7 @@
 module Maze.UI where
 
 import Maze.Algorithms
-import Maze.Types
+import Maze.Core
 
 import qualified Brick as B
 import qualified Brick.Widgets.Border as B

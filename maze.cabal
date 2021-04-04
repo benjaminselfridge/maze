@@ -23,7 +23,7 @@ extra-source-files: CHANGELOG.md
 
 library
     exposed-modules:  Maze.Algorithms
-                      Maze.Types
+                      Maze.Core
                       Maze.UI
 
     -- Modules included in this library but not exported.

@@ -4,7 +4,7 @@
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TypeOperators #-}
 
-module Maze.Types
+module Maze.Core
   ( -- * Cells and directions
     Cell
   , newCell

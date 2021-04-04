@@ -2,7 +2,7 @@ module Maze.Algorithms
   ( recursiveBacktracking
   ) where
 
-import Maze.Types
+import Maze.Core
 
 import Control.Monad (filterM, forM_, when)
 import Control.Monad.ST
