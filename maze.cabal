@@ -37,6 +37,7 @@ library
                       microlens-platform,
                       random,
                       random-shuffle,
+                      text,
                       time,
                       vty
     hs-source-dirs:   src

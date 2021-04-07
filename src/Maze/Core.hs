@@ -4,6 +4,9 @@
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TypeOperators #-}
 
+-- | This module stores the basic types and low-level operations for building
+-- 2-dimensional rectangular mazes. We build the maze in 'ST' and then freeze it
+-- when we're done, using mutable and immutable arrays.
 module Maze.Core
   ( -- * Cells and directions
     Cell
@@ -38,6 +41,7 @@ import Data.Array.ST
 import Data.Bits
 import Data.Word
 
+-- | A single cell of a 2-dimensional maze.
 data Cell = Cell { cellOpenRight :: Bool
                    -- ^ Is this cell connected to its neighbor on the right?
                  , cellOpenDown :: Bool
@@ -67,9 +71,9 @@ flipDirection DRight = DLeft
 -- coordinate), so always use in conjunction with 'stMazeInBounds'.
 neighborCoord :: Direction -> Coord -> Coord
 neighborCoord dir (r, c) = case dir of
-  DUp   -> (r-1,c)
-  DDown -> (r+1,c)
-  DLeft -> (r,c-1)
+  DUp    -> (r-1,c)
+  DDown  -> (r+1,c)
+  DLeft  -> (r,c-1)
   DRight -> (r,c+1)
 
 -- | Mutable maze in 'ST' monad.
@@ -80,7 +84,7 @@ newSTMaze :: Word32 -> Word32 -> ST s (STMaze s)
 newSTMaze rows cols = STMaze <$> newArray ((0,0),(rows-1,cols-1)) newCell
 
 -- | Get the number of (rows, columns) in an 'STMaze'.
-stMazeDims :: STMaze s -> ST s Coord
+stMazeDims :: STMaze s -> ST s (Word32, Word32)
 stMazeDims maze = do
   ((_, _), (hiR, hiC)) <- getBounds (stMazeArray maze)
   return (hiR+1, hiC+1)
@@ -114,7 +118,7 @@ stMazeNeighbors maze pos =
 -- | Open up one of the walls surrounding a cell, given the cell coordinate and
 -- the direction of the wall relative to that coordinate. If the direction leads
 -- us to a cell outside the maze, silently do nothing.
-stMazeOpen :: STMaze s -> Coord -> Direction -> ST s ()
+stMazeOpen :: STMaze s -> Coord -> Direction -> ST s Bool
 stMazeOpen maze pos dir = do
   let nPos = neighborCoord dir pos
   inBounds <- stMazeInBounds maze nPos
@@ -126,6 +130,7 @@ stMazeOpen maze pos dir = do
       DDown  -> stMazeSetCell maze pos  (cell  { cellOpenDown  = True })
       DLeft  -> stMazeSetCell maze nPos (nCell { cellOpenRight = True })
       DRight -> stMazeSetCell maze pos  (cell  { cellOpenRight = True })
+  return inBounds
 
 -- | Immutable maze.
 newtype IMaze = IMaze { iMazeArray :: Array Coord Cell }
