@@ -118,6 +118,7 @@ stMazeDims maze = do
   ((_, _), (hiR, hiC)) <- getBounds (stMazeArray maze)
   return (hiR+1, hiC+1)
 
+-- | Get the bounds of an 'STMaze' (top-left and bottom-right corners).
 stMazeBounds :: STMaze s -> ST s (Coord, Coord)
 stMazeBounds = getBounds . stMazeArray
 
