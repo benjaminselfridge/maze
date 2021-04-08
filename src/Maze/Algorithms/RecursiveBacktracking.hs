@@ -16,12 +16,12 @@ import System.Random.Shuffle
 -- | Build a maze using the recursive backtracking algorithm.
 recursiveBacktracking :: RandomGen g => g -> Word32 -> Word32 -> (IMaze, g)
 recursiveBacktracking g rows cols = runST $ do
-  gRef <- newSTRef g
-  maze <- newSTMaze rows cols
+  gRef         <- newSTRef g
+  maze         <- newSTMaze rows cols
   cellsVisited <- newArray ((0, 0), (rows-1, cols-1)) False
   recursiveBacktracking' gRef maze (0,0) cellsVisited
-  imaze <- freezeSTMaze maze
-  g' <- readSTRef gRef
+  imaze        <- freezeSTMaze maze
+  g'           <- readSTRef gRef
   return (imaze, g')
   where recursiveBacktracking' :: RandomGen g
                                => STRef s g
@@ -29,8 +29,8 @@ recursiveBacktracking g rows cols = runST $ do
                                -> Coord
                                -- ^ Position we are currently at in the maze.
                                -> STArray s Coord Bool
-                               -- ^ Table telling us whether we have visited a
-                               -- coordinate yet with this function.
+                               -- ^ Table telling us whether we have visited
+                               -- each coordinate yet.
                                -> ST s ()
         recursiveBacktracking' gRef maze pos cellsVisited = do
           -- Mark this coordinate as visited.
