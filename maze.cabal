@@ -23,18 +23,24 @@ extra-source-files: CHANGELOG.md
 
 library
     exposed-modules:  Maze.Algorithms
+                      Maze.Algorithms.BinaryTree
+                      Maze.Algorithms.Kruskal
+                      Maze.Algorithms.RecursiveBacktracking
                       Maze.Core
                       Maze.UI
+                      Maze.Utils
 
     -- Modules included in this library but not exported.
-    other-modules:    Maze.Algorithms.BinaryTree
-                      Maze.Algorithms.RecursiveBacktracking
+    -- other-modules:    Maze.Algorithms.BinaryTree
+    --                   Maze.Algorithms.Kruskal
+    --                   Maze.Algorithms.RecursiveBacktracking
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
     build-depends:    base >=4.14,
                       array,
                       brick,
+                      containers,
                       microlens-platform,
                       random,
                       random-shuffle,

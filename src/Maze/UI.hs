@@ -32,6 +32,7 @@ data Name = NGFNumRows
           | NGFNumCols
           | NGFRecursiveBacktracking
           | NGFBinaryTree
+          | NGFKruskal
   deriving (Show, Eq, Ord)
 
 -- | The only additional event we use is a timer event from the outside world
@@ -54,6 +55,7 @@ makeLenses ''GameMode
 
 data Algorithm = RecursiveBacktracking
                | BinaryTree
+               | Kruskal
   deriving (Show, Eq, Ord)
 
 data NewGameFormState = NewGameFormState
@@ -70,6 +72,7 @@ newGameForm = B.newForm
   , label "# algorithm: " B.@@= B.radioField ngfAlgorithm
     [ (RecursiveBacktracking, NGFRecursiveBacktracking, "recursive backtracking")
     , (BinaryTree, NGFBinaryTree, "binary tree")
+    , (Kruskal, NGFKruskal, "kruskal's algorithm")
     ]
   ]
   where label s w = B.padBottom (B.Pad 1) $
@@ -121,7 +124,8 @@ gameState :: StdGen
 gameState g numRows numCols alg startTime currentTime =
   let (maze, g') = case alg of
         RecursiveBacktracking -> recursiveBacktracking g numRows numCols
-        BinaryTree -> binaryTree g numRows numCols
+        BinaryTree            -> binaryTree g numRows numCols
+        Kruskal               -> kruskal g numRows numCols
       ngf = newGameForm (NewGameFormState numRows numCols alg)
   in GameState maze (0, 0) g' ngf (GameMode InProgress NoDialog) startTime currentTime
 

@@ -94,11 +94,9 @@ stMazeDims maze = do
 
 -- | Determine if a coordinate lies within an 'STMaze'\'s bounds.
 stMazeInBounds :: STMaze s -> Coord -> ST s Bool
-stMazeInBounds maze (r, c) = do
-  (numRows, numCols) <- stMazeDims maze
-  return $
-    0 <= r && 0 <= c &&
-    r < numRows && c < numCols
+stMazeInBounds maze pos = do
+  bounds <- getBounds (stMazeArray maze)
+  return $ inRange bounds pos
 
 -- | Get the cell at a given coordinate of an 'STMaze'. Does not do bounds
 -- checking, so this can raise an error.
@@ -120,7 +118,7 @@ stMazeNeighbors maze pos =
 
 -- | Open up one of the walls surrounding a cell, given the cell coordinate and
 -- the direction of the wall relative to that coordinate. If the direction leads
--- us to a cell outside the maze, silently do nothing.
+-- us to a cell outside the maze, do nothing, but return 'False'.
 stMazeOpen :: STMaze s -> Coord -> Direction -> ST s Bool
 stMazeOpen maze pos dir = do
   let nPos = neighborCoord dir pos
@@ -149,10 +147,7 @@ iMazeDims maze = let ((_, _), (hiR, hiC)) = bounds (iMazeArray maze)
 
 -- | Determine if a coordinate lies within an 'IMaze'\'s bounds.
 iMazeInBounds :: IMaze -> Coord -> Bool
-iMazeInBounds maze (r, c) =
-  let (numRows, numCols) = iMazeDims maze
-  in 0 <= r && 0 <= c &&
-     r < numRows && c < numCols
+iMazeInBounds = inRange . bounds . iMazeArray
 
 -- | Get the cell at a given coordinate of an 'IMaze'. Does not do bounds
 -- checking, so this can raise an error.
