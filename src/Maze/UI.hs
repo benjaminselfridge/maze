@@ -21,6 +21,7 @@ import System.Random
 import Data.Word
 import qualified Data.Text as T
 import Text.Read (readMaybe)
+import qualified Data.Set as Set
 
 maxRows :: Word32
 maxRows = 20
@@ -33,6 +34,8 @@ data Name = NGFNumRows
           | NGFRecursiveBacktracking
           | NGFBinaryTree
           | NGFKruskal
+          | NGFBig
+          | NGFSmall
   deriving (Show, Eq, Ord)
 
 -- | The only additional event we use is a timer event from the outside world
@@ -58,10 +61,14 @@ data Algorithm = RecursiveBacktracking
                | Kruskal
   deriving (Show, Eq, Ord)
 
+data Size = Big | Small
+  deriving (Show, Eq, Ord)
+
 data NewGameFormState = NewGameFormState
   { _ngfNumRows   :: Word32
   , _ngfNumCols   :: Word32
   , _ngfAlgorithm :: Algorithm
+  , _ngfSize      :: Size
   }
 makeLenses ''NewGameFormState
 
@@ -73,6 +80,10 @@ newGameForm = B.newForm
     [ (RecursiveBacktracking, NGFRecursiveBacktracking, "recursive backtracking")
     , (BinaryTree, NGFBinaryTree, "binary tree")
     , (Kruskal, NGFKruskal, "kruskal's algorithm")
+    ]
+  , label "size: " B.@@= B.radioField ngfSize
+    [ (Big, NGFBig, "big")
+    , (Small, NGFSmall, "small")
     ]
   ]
   where label s w = B.padBottom (B.Pad 1) $
@@ -106,6 +117,7 @@ data GameState = GameState
   , _gsGen :: StdGen
   , _gsNewGameForm :: B.Form NewGameFormState MazeEvent Name
   , _gsGameMode :: GameMode
+  , _gsVisitedCoords :: Set.Set Coord
   , _gsStartTime :: UTCTime
     -- ^ Time when the current game was started
   , _gsCurrentTime :: UTCTime
@@ -118,23 +130,25 @@ gameState :: StdGen
           -> Word32
           -> Word32
           -> Algorithm
+          -> Size
           -> UTCTime
           -> UTCTime
           -> GameState
-gameState g numRows numCols alg startTime currentTime =
+gameState g numRows numCols alg size startTime currentTime =
   let (maze, g') = case alg of
         RecursiveBacktracking -> recursiveBacktracking g numRows numCols
         BinaryTree            -> binaryTree g numRows numCols
         Kruskal               -> kruskal g numRows numCols
-      ngf = newGameForm (NewGameFormState numRows numCols alg)
-  in GameState maze (0, 0) g' ngf (GameMode InProgress NoDialog) startTime currentTime
+      ngf = newGameForm (NewGameFormState numRows numCols alg size)
+  in GameState maze (0, 0) g' ngf (GameMode InProgress NoDialog) Set.empty startTime currentTime
 
 gsNewGame :: GameState -> GameState
-gsNewGame gs = gameState g numRows numCols alg st ct
+gsNewGame gs = gameState g numRows numCols alg size st ct
   where g = gs ^. gsGen
         numRows = B.formState (gs ^. gsNewGameForm) ^. ngfNumRows
         numCols = B.formState (gs ^. gsNewGameForm) ^. ngfNumCols
         alg = B.formState (gs ^. gsNewGameForm) ^. ngfAlgorithm
+        size = B.formState (gs ^. gsNewGameForm) ^. ngfSize
         st = gs ^. gsCurrentTime
         ct = gs ^. gsCurrentTime
 
@@ -166,35 +180,46 @@ drawMain :: GameState -> B.Widget n
 drawMain gs = B.vBox
   [ B.vLimit 5 $ B.center $ B.str "MAZE"
   , B.center $ B.vBox
-    [ B.hCenter $ drawMaze (gs ^. gsMaze) (gs ^. gsPos)
+    [ B.hCenter $ drawMaze gs
     , B.hCenter $ status (gs ^. gsGameMode ^. gmSolvingState) (secondsElapsed gs)
     ]
   , B.vLimit 5 $ B.center help
   ]
 
-drawMaze :: IMaze -> Coord -> B.Widget n
-drawMaze maze pos = B.vBox $
-  (B.hBox . fmap (drawCell maze pos)) topRow :
-  fmap (B.hBox . fmap (drawCell maze pos)) rows
-  where (topRow:rows) = iMazeToList maze
+drawMaze :: GameState -> B.Widget n
+drawMaze gs = B.vBox $
+  (B.hBox . fmap (drawCell gs)) topRow :
+  fmap (B.hBox . fmap (drawCell gs)) rows
+  where (topRow:rows) = iMazeToList (gs ^. gsMaze)
+        drawCell = case B.formState (gs ^. gsNewGameForm) ^. ngfSize of
+          Big -> drawCellBig
+          Small -> drawCellSmall
 
-drawCellSmall :: IMaze -> Coord -> (Coord, Cell) -> B.Widget n
-drawCellSmall maze pos ((r, c), cell) = B.vBox
+drawCellSmall :: GameState -> (Coord, Cell) -> B.Widget n
+drawCellSmall gs ((r, c), cell) = B.vBox
   [ B.str $ tS
-  , B.hBox [B.str lS, attr (B.str [dC]), B.str [rC]]
+  , B.hBox [B.str lS, B.withAttr attr (B.str [dC]), B.str [rC]]
   ]
-  where dC = if cellOpenDown  cell then ' ' else '_'
+  where pos = gs ^. gsPos
+        dC = if cellOpenDown  cell then ' ' else '_'
         rC = if cellOpenRight cell then ' ' else '|'
         lS = if c == 0 then "|" else ""
         tS = if r == 0
              then if c == 0 then " _ \n" else "_ \n"
              else ""
+        isFinish = (r, c) == (numRows-1, numCols-1)
+        isSolved = pos == (numRows-1, numCols-1)
         attr = if pos == (r, c)
-               then B.withAttr "pos"
-               else B.withAttr "blank"
+               then if isFinish
+                    then "solved"
+                    else "pos"
+               else if isFinish
+                    then "finish"
+                    else "blank"
+        (numRows, numCols) = iMazeDims (gs ^. gsMaze)
 
-drawCell :: IMaze -> Coord -> (Coord, Cell) -> B.Widget n
-drawCell maze pos ((r, c), cell) = B.vBox
+drawCellBig :: GameState -> (Coord, Cell) -> B.Widget n
+drawCellBig gs ((r, c), cell) = B.vBox
   [ B.str $ topLeftBorder ++ topBorder
   , B.hBox
     [ B.str leftBorder
@@ -209,7 +234,9 @@ drawCell maze pos ((r, c), cell) = B.vBox
     , B.str [bottomRight]
     ]
   ]
-  where mid = if (r, c) == pos then '*' else ' '
+  where maze = gs ^. gsMaze
+        pos = gs ^. gsPos
+        mid = if (r, c) == pos then '*' else ' '
         down  = if cellOpenDown  cell then ' ' else '_'
         right = if cellOpenRight cell then ' ' else '|'
         bottomRight = if cellOpenRight cell then ' ' else '|'
@@ -296,6 +323,7 @@ attrMap :: GameState -> B.AttrMap
 attrMap _ = B.attrMap V.defAttr
   [ ("start", V.defAttr)
   , ("finish", V.withBackColor V.defAttr V.red)
+  , ("solved", V.withBackColor V.defAttr V.green)
   , ("blank", V.defAttr)
   , ("pos", V.withBackColor V.defAttr V.blue)
   , (B.formAttr, V.defAttr)

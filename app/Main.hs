@@ -27,4 +27,4 @@ main = do
     builder
     (Just eventChannel)
     mazeApp
-    (gameState g 10 10 RecursiveBacktracking st st)
+    (gameState g 10 10 RecursiveBacktracking Big st st)
