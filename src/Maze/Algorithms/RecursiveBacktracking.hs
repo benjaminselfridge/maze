@@ -19,7 +19,7 @@ recursiveBacktracking g rows cols = runST $ do
   gRef <- newSTRef g
   maze <- newSTMaze rows cols
   cellsVisited <- newArray ((0, 0), (rows-1, cols-1)) False
-  recursiveBacktracking' gRef maze (0,0) Nothing cellsVisited
+  recursiveBacktracking' gRef maze (0,0) cellsVisited
   imaze <- freezeSTMaze maze
   g' <- readSTRef gRef
   return (imaze, g')
@@ -28,16 +28,11 @@ recursiveBacktracking g rows cols = runST $ do
                                -> STMaze s
                                -> Coord
                                -- ^ Position we are currently at in the maze.
-                               -> Maybe Direction
-                               -- ^ The direction we traveled to get to this
-                               -- position (so @Just Up@ means we came from the
-                               -- cell below this one, and @Nothing@ means this
-                               -- is the starting cell).
                                -> STArray s Coord Bool
                                -- ^ Table telling us whether we have visited a
                                -- coordinate yet with this function.
                                -> ST s ()
-        recursiveBacktracking' gRef maze pos mDir cellsVisited = do
+        recursiveBacktracking' gRef maze pos cellsVisited = do
           -- Mark this coordinate as visited.
           writeArray cellsVisited pos True
           -- Get the neighbors of this cell.
@@ -53,4 +48,4 @@ recursiveBacktracking g rows cols = runST $ do
             visited <- readArray cellsVisited nPos
             when (not visited) $ do
               stMazeOpen maze pos dir
-              recursiveBacktracking' gRef maze nPos (Just dir) cellsVisited
+              recursiveBacktracking' gRef maze nPos cellsVisited
