@@ -172,7 +172,7 @@ draw gs = case gs ^. gsGameMode ^. gmDialog of
 
 drawNewGame :: GameState -> B.Widget Name
 drawNewGame gs = B.center $ B.vLimit 20 $ B.hLimit 50 $
-  B.vBox [ B.renderForm (gs ^. gsNewGameForm)
+  B.vBox [ B.borderWithLabel (B.str "New Game") $ B.renderForm (gs ^. gsNewGameForm)
          , B.center $ B.str "(press enter to start new game, esc to cancel)"
          ]
 
@@ -315,6 +315,7 @@ handleEvent gs be = case gs ^. gsGameMode ^. gmDialog of
       B.continue (gsNewGame gs)
     B.VtyEvent (V.EvKey V.KEsc []) ->
       B.continue (gs & gsGameMode . gmDialog .~ NoDialog)
+    B.AppEvent (Tick currentTime) -> B.continue (gs & gsCurrentTime .~ currentTime)
     _ -> do f' <- B.handleFormEvent be (gs ^. gsNewGameForm)
             B.continue (gs & gsNewGameForm .~ f')
 
