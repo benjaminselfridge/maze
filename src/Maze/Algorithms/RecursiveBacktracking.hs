@@ -11,7 +11,6 @@ import Data.Array.ST
 import Data.STRef
 import Data.Word
 import System.Random
-import System.Random.Shuffle
 
 -- | Build a maze using the recursive backtracking algorithm.
 recursiveBacktracking :: RandomGen g => g -> Word32 -> Word32 -> (IMaze, g)
@@ -39,7 +38,7 @@ recursiveBacktracking g rows cols = runST $ do
           neighbors <- stMazeNeighbors maze pos
           -- Shuffle the list of neighbors.
           g <- readSTRef gRef
-          let (neighbors', g') = shuffleG neighbors (length neighbors) g
+          let (neighbors', g') = shuffle neighbors g
           writeSTRef gRef g'
           -- For each neighbor, if it has not been visited already, visit it by removing
           -- the wall between the current cell and the neighbor, and be recursively

@@ -40,12 +40,13 @@ library
     build-depends:    base >=4.14,
                       array,
                       brick,
+                      combinat,
                       containers,
                       microlens-platform,
                       random,
-                      random-shuffle,
                       text,
                       time,
+                      union-find,
                       vty
     hs-source-dirs:   src
     default-language: Haskell2010

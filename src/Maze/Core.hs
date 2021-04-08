@@ -8,12 +8,15 @@
 -- 2-dimensional rectangular mazes. We build the maze in 'ST' and then freeze it
 -- when we're done, using mutable and immutable arrays.
 module Maze.Core
-  ( -- * Cells and directions
+  ( -- * Cells, coordinates, directions, and edges
     Cell
-  , newCell
   , cellOpenRight
   , cellOpenDown
   , Coord
+  , EdgeId
+  , edgeIdCoord
+  , edgeIdDirection
+  , edgeIdsInRange
   , Direction(..)
   , flipDirection
   , neighborCoord
@@ -21,6 +24,8 @@ module Maze.Core
   , STMaze
   , newSTMaze
   , stMazeDims
+  , stMazeEdgeIds
+  , stMazeBounds
   , stMazeInBounds
   , stMazeNeighbors
   , stMazeOpen
@@ -54,6 +59,27 @@ newCell = Cell False False
 
 -- | The location of a cell within a maze is just a pair @(row, col)@.
 type Coord = (Word32, Word32)
+
+-- | An edge identifier is just a cell identifier ('Coord') along with a
+-- direction, either right or down.
+data EdgeId = EdgeRight Coord
+            | EdgeDown Coord
+  deriving (Show, Eq, Ord)
+
+-- | Get the coordinate of an edge id.
+edgeIdCoord :: EdgeId -> Coord
+edgeIdCoord (EdgeRight pos) = pos
+edgeIdCoord (EdgeDown  pos) = pos
+
+-- | Get the direction of an edge id.
+edgeIdDirection :: EdgeId -> Direction
+edgeIdDirection (EdgeRight _) = DRight
+edgeIdDirection (EdgeDown  _) = DDown
+
+-- | Get a list of all the edges in a range of coordinates. Be aware that this
+-- includes the edges on the right and lower wall of the maze.
+edgeIdsInRange :: (Coord, Coord) -> [EdgeId]
+edgeIdsInRange (lo, hi) = [EdgeRight, EdgeDown] <*> range (lo, hi)
 
 -- | Represents a direction relating one cell to another.
 data Direction = DUp | DDown | DLeft | DRight
@@ -92,11 +118,19 @@ stMazeDims maze = do
   ((_, _), (hiR, hiC)) <- getBounds (stMazeArray maze)
   return (hiR+1, hiC+1)
 
+stMazeBounds :: STMaze s -> ST s (Coord, Coord)
+stMazeBounds = getBounds . stMazeArray
+
 -- | Determine if a coordinate lies within an 'STMaze'\'s bounds.
 stMazeInBounds :: STMaze s -> Coord -> ST s Bool
 stMazeInBounds maze pos = do
   bounds <- getBounds (stMazeArray maze)
   return $ inRange bounds pos
+
+-- | Get a list of all edges in an 'STMaze'. Be aware that this includes the
+-- edges corresponding to the rightmost and lowermost walls of the maze itself.
+stMazeEdgeIds :: STMaze s -> ST s [EdgeId]
+stMazeEdgeIds maze = edgeIdsInRange <$> stMazeBounds maze
 
 -- | Get the cell at a given coordinate of an 'STMaze'. Does not do bounds
 -- checking, so this can raise an error.
