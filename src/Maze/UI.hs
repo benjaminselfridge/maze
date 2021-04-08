@@ -247,7 +247,9 @@ drawCellBig gs ((r, c), cell) = B.vBox
         isFinish = r == numRows-1 && c == numCols-1
         attr = case (isStart, isFinish) of
           (True, _) -> "start"
-          (_, True) -> "finish"
+          (_, True) -> if (r, c) == pos
+            then "solved"
+            else "finish"
           _ -> "blank"
         (numRows, numCols) = iMazeDims maze
 
