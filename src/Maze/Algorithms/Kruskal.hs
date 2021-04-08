@@ -1,6 +1,5 @@
 module Maze.Algorithms.Kruskal
   ( kruskal
-  , newKruskal
   ) where
 
 import Maze.Core
