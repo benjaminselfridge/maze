@@ -27,7 +27,8 @@ library
                       Maze.UI
 
     -- Modules included in this library but not exported.
-    -- other-modules:
+    other-modules:    Maze.Algorithms.BinaryTree
+                      Maze.Algorithms.RecursiveBacktracking
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
