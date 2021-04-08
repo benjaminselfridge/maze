@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TemplateHaskell #-}
 
 module Maze.UI where
@@ -11,6 +12,7 @@ import qualified Brick.Widgets.Border as B
 import qualified Brick.Widgets.Center as B
 import qualified Brick.Widgets.Edit as B
 import qualified Brick.Forms as B
+import Control.Monad ((<=<))
 import Data.Array.IArray
 import qualified Graphics.Vty as V
 import Lens.Micro.Platform
@@ -19,6 +21,12 @@ import System.Random
 import Data.Word
 import qualified Data.Text as T
 import Text.Read (readMaybe)
+
+maxRows :: Word32
+maxRows = 20
+
+maxCols :: Word32
+maxCols = 40
 
 data Name = NGFNumRows
           | NGFNumCols
@@ -57,15 +65,37 @@ makeLenses ''NewGameFormState
 
 newGameForm :: NewGameFormState -> B.Form NewGameFormState e Name
 newGameForm = B.newForm
-  [ label "# rows: " B.@@= B.editShowableField ngfNumRows NGFNumRows
-  , label "# cols: " B.@@= B.editShowableField ngfNumCols NGFNumCols
+  [ label "# rows (<=20): " B.@@= editShowableFieldWithValidate ngfNumRows NGFNumRows validRow
+  , label "# cols (<=40): " B.@@= editShowableFieldWithValidate ngfNumCols NGFNumCols validCol
   , label "# algorithm: " B.@@= B.radioField ngfAlgorithm
     [ (RecursiveBacktracking, NGFRecursiveBacktracking, "recursive backtracking")
     , (BinaryTree, NGFBinaryTree, "binary tree")
     ]
   ]
-  where label s w = B.center $ B.padBottom (B.Pad 1) $
+  where label s w = B.padBottom (B.Pad 1) $
           (B.vLimit 1 $ B.hLimit 15 $ B.str s B.<+> B.fill ' ') B.<+> w
+        validRow r | 1 <= r, r <= maxRows = Just r
+                   | otherwise = Nothing
+        validCol c | 1 <= c, c <= maxCols = Just c
+                   | otherwise = Nothing
+
+-- | This will be merged into @brick@, so we can remove it at some point
+editShowableFieldWithValidate :: (Ord n, Show n, Read a, Show a)
+                   => Lens' s a
+                   -- ^ The state lens for this value.
+                   -> n
+                   -- ^ The resource name for the input field.
+                   -> (a -> Maybe a)
+                   -- ^ additional validation step for input.
+                   -> s
+                   -- ^ The initial form state.
+                   -> B.FormFieldState s e n
+editShowableFieldWithValidate stLens n validate =
+    let ini = T.pack . show
+        val = validate <=< (readMaybe . T.unpack . T.intercalate "\n")
+        limit = Just 1
+        renderText = B.txt . T.unlines
+    in B.editField stLens n limit ini val renderText id
 
 data GameState = GameState
   { _gsMaze :: IMaze
@@ -123,8 +153,10 @@ draw gs = case gs ^. gsGameMode ^. gmDialog of
   NewGameDialog -> [ drawNewGame gs ]
 
 drawNewGame :: GameState -> B.Widget Name
-drawNewGame gs = B.center $ B.vLimit 10 $ B.hLimit 50 $
-  B.renderForm (gs ^. gsNewGameForm)
+drawNewGame gs = B.center $ B.vLimit 20 $ B.hLimit 50 $
+  B.vBox [ B.renderForm (gs ^. gsNewGameForm)
+         , B.center $ B.str "(press enter to start new game, esc to cancel)"
+         ]
 
 drawMain :: GameState -> B.Widget n
 drawMain gs = B.vBox
@@ -248,9 +280,10 @@ handleEvent gs be = case gs ^. gsGameMode ^. gmDialog of
   NewGameDialog -> case be of
     B.VtyEvent (V.EvKey V.KEnter []) ->
       B.continue (gsNewGame gs)
+    B.VtyEvent (V.EvKey V.KEsc []) ->
+      B.continue (gs & gsGameMode . gmDialog .~ NoDialog)
     _ -> do f' <- B.handleFormEvent be (gs ^. gsNewGameForm)
             B.continue (gs & gsNewGameForm .~ f')
-
 
 startEvent :: GameState -> B.EventM Name GameState
 startEvent gs = return gs

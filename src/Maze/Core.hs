@@ -79,8 +79,11 @@ neighborCoord dir (r, c) = case dir of
 -- | Mutable maze in 'ST' monad.
 newtype STMaze s = STMaze { stMazeArray :: STArray s Coord Cell }
 
--- | Construct a new 'STMaze' with a given number of rows and columns.
+-- | Construct a new 'STMaze' with a given number of rows and columns. Both rows
+-- and columns must be positive, or this function will throw an error.
 newSTMaze :: Word32 -> Word32 -> ST s (STMaze s)
+newSTMaze 0 _ = error "newSTMaze called with 0 rows"
+newSTMaze _ 0 = error "newSTMaze called with 0 columns"
 newSTMaze rows cols = STMaze <$> newArray ((0,0),(rows-1,cols-1)) newCell
 
 -- | Get the number of (rows, columns) in an 'STMaze'.
