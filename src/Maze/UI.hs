@@ -74,11 +74,11 @@ makeLenses ''NewGameFormState
 
 newGameForm :: NewGameFormState -> B.Form NewGameFormState e Name
 newGameForm = B.newForm
-  [ label ("# rows (<=" ++ show maxRows ++ "): ") B.@@=
+  [ B.padBottom (B.Pad 1) . label ("# rows (<=" ++ show maxRows ++ "): ") B.@@=
     B.editShowableFieldWithValidate ngfNumRows NGFNumRows validRow
-  , label ("# cols (<=" ++ show maxCols ++ "): ") B.@@=
+  , B.padBottom (B.Pad 1) . label ("# cols (<=" ++ show maxCols ++ "): ") B.@@=
     B.editShowableFieldWithValidate ngfNumCols NGFNumCols validCol
-  , label "# algorithm: " B.@@= B.radioField ngfAlgorithm
+  , B.padBottom (B.Pad 1) . label "# algorithm: " B.@@= B.radioField ngfAlgorithm
     [ (RecursiveBacktracking, NGFRecursiveBacktracking, "recursive backtracking")
     , (BinaryTree, NGFBinaryTree, "binary tree")
     , (Kruskal, NGFKruskal, "kruskal's algorithm")
@@ -88,7 +88,7 @@ newGameForm = B.newForm
     , (Small, NGFSmall, "small")
     ]
   ]
-  where label s w = B.padBottom (B.Pad 1) $
+  where label s w =
           (B.vLimit 1 $ B.hLimit 15 $ B.str s B.<+> B.fill ' ') B.<+> w
         validRow r = 1 <= r && r <= maxRows
         validCol c = 1 <= c && c <= maxCols
