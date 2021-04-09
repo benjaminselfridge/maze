@@ -39,7 +39,7 @@ library
     -- other-extensions:
     build-depends:    base >=4.14,
                       array,
-                      brick,
+                      brick >= 0.61,
                       combinat,
                       containers,
                       microlens-platform,

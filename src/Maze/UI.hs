@@ -74,8 +74,10 @@ makeLenses ''NewGameFormState
 
 newGameForm :: NewGameFormState -> B.Form NewGameFormState e Name
 newGameForm = B.newForm
-  [ label "# rows (<=20): " B.@@= editShowableFieldWithValidate ngfNumRows NGFNumRows validRow
-  , label "# cols (<=40): " B.@@= editShowableFieldWithValidate ngfNumCols NGFNumCols validCol
+  [ label ("# rows (<=" ++ show maxRows ++ "): ") B.@@=
+    B.editShowableFieldWithValidate ngfNumRows NGFNumRows validRow
+  , label ("# cols (<=" ++ show maxCols ++ "): ") B.@@=
+    B.editShowableFieldWithValidate ngfNumCols NGFNumCols validCol
   , label "# algorithm: " B.@@= B.radioField ngfAlgorithm
     [ (RecursiveBacktracking, NGFRecursiveBacktracking, "recursive backtracking")
     , (BinaryTree, NGFBinaryTree, "binary tree")
@@ -88,10 +90,8 @@ newGameForm = B.newForm
   ]
   where label s w = B.padBottom (B.Pad 1) $
           (B.vLimit 1 $ B.hLimit 15 $ B.str s B.<+> B.fill ' ') B.<+> w
-        validRow r | 1 <= r, r <= maxRows = Just r
-                   | otherwise = Nothing
-        validCol c | 1 <= c, c <= maxCols = Just c
-                   | otherwise = Nothing
+        validRow r = 1 <= r && r <= maxRows
+        validCol c = 1 <= c && c <= maxCols
 
 -- | This will be merged into @brick@, so we can remove it at some point
 editShowableFieldWithValidate :: (Ord n, Show n, Read a, Show a)
