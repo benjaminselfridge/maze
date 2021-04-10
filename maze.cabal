@@ -22,7 +22,8 @@ maintainer:         benselfridge@galois.com
 extra-source-files: CHANGELOG.md
 
 library
-    exposed-modules:  Maze.Algorithms
+    exposed-modules:  Maze
+                      Maze.Algorithms
                       Maze.Algorithms.BinaryTree
                       Maze.Algorithms.Kruskal
                       Maze.Algorithms.RecursiveBacktracking
