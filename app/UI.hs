@@ -2,7 +2,7 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TemplateHaskell #-}
 
-module Maze.UI where
+module UI where
 
 import Maze.Algorithms
 import Maze.Core
@@ -243,13 +243,14 @@ drawCellBig gs ((r, c), cell) = B.vBox
         leftBorder = if c == 0 then "|" else ""
         topBorder = if r == 0 then "___ " else ""
         topLeftBorder = if (r == 0 && c == 0) then " " else ""
+        isPos = (r, c) == pos
         isStart = r == 0 && c == 0
         isFinish = r == numRows-1 && c == numCols-1
-        attr = case (isStart, isFinish) of
-          (True, _) -> "start"
-          (_, True) -> if (r, c) == pos
-            then "solved"
-            else "finish"
+        isVisited = (r, c) `Set.member` (gs ^. gsVisitedCoords)
+        attr = case (isStart, isFinish, isPos) of
+          (True, _, _) -> "start"
+          (_, True, True) -> "solved"
+          (_, True, False) -> "finish"
           _ -> "blank"
         (numRows, numCols) = iMazeDims maze
 
@@ -286,7 +287,8 @@ gsMove gs0 dir
         gs2 = gs1 & gsGameMode . gmSolvingState .~ case isSolved gs1 of
           True -> Solved (secondsElapsed gs0)
           False -> InProgress
-    in gs2
+        gs3 = gs2 & gsVisitedCoords %~ Set.insert (gs2 ^. gsPos)
+    in gs3
   | otherwise = gs0
 
 handleEvent :: GameState
@@ -327,6 +329,7 @@ attrMap _ = B.attrMap V.defAttr
   [ ("start", V.defAttr)
   , ("finish", V.withBackColor V.defAttr V.red)
   , ("solved", V.withBackColor V.defAttr V.green)
+  , ("visited", V.withBackColor V.defAttr V.yellow)
   , ("blank", V.defAttr)
   , ("pos", V.withBackColor V.defAttr V.blue)
   , (B.formAttr, V.defAttr)

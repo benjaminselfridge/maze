@@ -1,11 +1,12 @@
 module Main where
 
+import UI
+
 import Control.Monad (void, forever)
 
 import Brick
 import Brick.BChan
 import Data.Time.Clock
-import Maze.UI
 import Graphics.Vty
 import Control.Concurrent
 import System.Random

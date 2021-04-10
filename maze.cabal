@@ -27,7 +27,6 @@ library
                       Maze.Algorithms.Kruskal
                       Maze.Algorithms.RecursiveBacktracking
                       Maze.Core
-                      Maze.UI
                       Maze.Utils
 
     -- Modules included in this library but not exported.
@@ -42,9 +41,7 @@ library
                       brick >= 0.61,
                       combinat,
                       containers,
-                      microlens-platform,
                       random,
-                      text,
                       time,
                       union-find,
                       vty
@@ -55,15 +52,19 @@ executable maze
     main-is:          Main.hs
 
     -- Modules included in this executable, other than Main.
-    -- other-modules:
+    other-modules:    UI
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
     build-depends:
         base,
+        array,
         brick,
+        containers,
         maze,
+        microlens-platform,
         random,
+        text,
         time,
         vty
 
