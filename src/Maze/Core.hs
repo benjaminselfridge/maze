@@ -19,7 +19,6 @@ module Maze.Core
     -- * Mutable maze
   , STMaze
   , newSTMaze
-  , stMazeDims
   , stMazeBounds
   , stMazeInnerEdges
   , stMazeNeighborCoords
@@ -124,12 +123,6 @@ newSTMaze 0 _ = error "newSTMaze called with 0 rows"
 newSTMaze _ 0 = error "newSTMaze called with 0 columns"
 newSTMaze rows cols = STMaze <$> newArray (C 0 0, C (rows-1) (cols-1)) newCell
 
--- | Get the number of (rows, columns) in an 'STMaze'.
-stMazeDims :: STMaze s -> ST s (Word32, Word32)
-stMazeDims maze = do
-  (C _ _, C hiR hiC) <- getBounds (stMazeArray maze)
-  return (hiR+1, hiC+1)
-
 -- | Get the bounds of an 'STMaze' (top-left and bottom-right corners).
 stMazeBounds :: STMaze s -> ST s (Coord, Coord)
 stMazeBounds = getBounds . stMazeArray
@@ -143,12 +136,12 @@ stMazeInBounds maze pos = do
 -- | Get a list of all inner edges in an 'STMaze', with neighbors on each side.
 stMazeInnerEdges :: STMaze s -> ST s [Edge]
 stMazeInnerEdges maze = do
-  (numRows, numCols) <- stMazeDims maze
+  (_, (C hiR hiC)) <- stMazeBounds maze
   return $
     [ EdgeRight (C (fromInteger r) (fromInteger c))
-    | r <- [0..toInteger numRows-1], c <- [0..toInteger numCols-2] ] ++
+    | r <- [0..toInteger hiR], c <- [0..(toInteger hiC)-1] ] ++
     [ EdgeDown (C (fromInteger r) (fromInteger c))
-    | r <- [0..toInteger numRows-2], c <- [0..toInteger numCols-1] ]
+    | r <- [0..(toInteger hiR)-1], c <- [0..toInteger hiC] ]
 
 -- | Get the neighbor coordinate in a particular direction of an 'STMaze', if
 -- one exists. If it doesn't, return 'Nothing'.
