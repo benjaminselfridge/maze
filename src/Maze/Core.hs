@@ -22,7 +22,7 @@ module Maze.Core
   , stMazeBounds
   , stMazeInnerEdges
   , stMazeNeighborCoords
-  , stMazeOpen
+  , stMazeOpenCoordDir
   , stMazeOpenEdge
     -- * Immutable maze
   , IMaze
@@ -161,8 +161,8 @@ stMazeNeighborCoords maze pos =
 -- | Open up one of the walls surrounding a cell, given the cell coordinate and
 -- the direction of the wall relative to that coordinate. If the direction leads
 -- us to a cell outside the maze, do nothing, but return 'False'.
-stMazeOpen :: STMaze s -> Coord -> Direction -> ST s Bool
-stMazeOpen maze pos dir = do
+stMazeOpenCoordDir :: STMaze s -> Coord -> Direction -> ST s Bool
+stMazeOpenCoordDir maze pos dir = do
   let nPos = neighborCoord dir pos
   inBounds <- stMazeInBounds maze nPos
   when inBounds $ do
@@ -180,7 +180,7 @@ stMazeOpen maze pos dir = do
 -- the direction of the wall relative to that coordinate. If the direction leads
 -- us to a cell outside the maze, do nothing, but return 'False'.
 stMazeOpenEdge :: STMaze s -> Edge -> ST s Bool
-stMazeOpenEdge maze e = stMazeOpen maze (edgeCoord e) (edgeDirection e)
+stMazeOpenEdge maze e = stMazeOpenCoordDir maze (edgeCoord e) (edgeDirection e)
 
 -- | Immutable maze.
 newtype IMaze = IMaze { iMazeArray :: Array Coord Cell }

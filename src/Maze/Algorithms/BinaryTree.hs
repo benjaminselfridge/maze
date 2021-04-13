@@ -22,10 +22,10 @@ binaryTree g rows cols = runST $ do
     g <- readSTRef gRef
     let (b, g') = random g
     if b
-      then do success <- stMazeOpen maze pos DUp
-              when (not success) $ void $ stMazeOpen maze pos DLeft
-      else do success <- stMazeOpen maze pos DLeft
-              when (not success) $ void $ stMazeOpen maze pos DUp
+      then do success <- stMazeOpenCoordDir maze pos DUp
+              when (not success) $ void $ stMazeOpenCoordDir maze pos DLeft
+      else do success <- stMazeOpenCoordDir maze pos DLeft
+              when (not success) $ void $ stMazeOpenCoordDir maze pos DUp
     writeSTRef gRef g'
   imaze <- freezeSTMaze maze
   g' <- readSTRef gRef

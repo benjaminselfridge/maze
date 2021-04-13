@@ -49,5 +49,5 @@ recursiveBacktracking g rows cols = runST $ do
           forM_ neighbors' $ \(dir, nPos) -> do
             visited <- readArray cellsVisited nPos
             when (not visited) $ do
-              stMazeOpen maze pos dir
+              stMazeOpenCoordDir maze pos dir
               recursiveBacktracking' gRef maze nPos cellsVisited
