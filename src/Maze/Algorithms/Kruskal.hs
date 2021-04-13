@@ -24,7 +24,7 @@ kruskal g numRows numCols = runST $ do
   let (edges', g') = shuffle edges g
   k <- newKruskal maze
   forM_ edges' $ \e -> do
-    let (pos, pos') = edgeIdNeighbors e
+    let (pos, pos') = edgeNeighbors e
     sameSet <- kruskalSameSet k pos pos'
     case sameSet of
       True -> return ()
