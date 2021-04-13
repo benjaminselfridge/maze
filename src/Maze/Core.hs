@@ -56,13 +56,15 @@ newCell = Cell False False
 
 -- | The location of a cell within a maze is just a pair @(row, col)@ (@0@-indexed).
 data Coord = C { coordRow :: Word32
+                 -- ^ @0@-indexed row of coordinate
                , coordCol :: Word32
+                 -- ^ @0@-indexed column of coordinate
                }
   deriving (Show, Eq, Ord, Ix)
 
 -- | Unique identifier for an edge, or wall, in a maze.
 data Edge = EdgeRight Coord
-            | EdgeDown Coord
+          | EdgeDown Coord
   deriving (Show, Eq, Ord)
 
 -- | Get the coordinate of an edge id.
@@ -75,8 +77,7 @@ edgeDirection :: Edge -> Direction
 edgeDirection (EdgeRight _) = DRight
 edgeDirection (EdgeDown  _) = DDown
 
--- | Get the neighbors on either side of an edge id. (Doesn't check bounds, so
--- use in conjunction with 'stMazeInBounds'.)
+-- | Get the neighbors on either side of an edge.
 edgeNeighbors :: Edge -> (Coord, Coord)
 edgeNeighbors e = (pos, neighborCoord dir pos)
   where pos = edgeCoord e
@@ -108,9 +109,9 @@ neighborCoord dir (C r c) = case dir of
 -- negative coordinate), so always use in conjunction with 'stMazeInBounds'.
 neighborEdge :: Direction -> Coord -> Edge
 neighborEdge dir (C r c) = case dir of
-  DUp -> EdgeDown (C (r-1) c)
-  DDown -> EdgeDown (C r c)
-  DLeft -> EdgeRight (C r (c-1))
+  DUp    -> EdgeDown  (C (r-1) c)
+  DDown  -> EdgeDown  (C r c)
+  DLeft  -> EdgeRight (C r (c-1))
   DRight -> EdgeRight (C r c)
 
 -- | Mutable maze in 'ST' monad.
