@@ -8,22 +8,22 @@
 -- 2-dimensional rectangular mazes. We build the maze in 'ST' and then freeze it
 -- when we're done, using mutable and immutable arrays.
 module Maze.Core
-  ( -- * Coordinates, directions, and edges
+  ( -- * Coordinates, directions, and walls
     Coord
   , coordRow
   , coordCol
-  , Edge
-  , edgeNeighbors
-  , edgeDirection
+  , Wall
+  , wallNeighbors
+  , wallDirection
   , Direction(..)
     -- * Mutable maze
   , STMaze
   , newSTMaze
   , stMazeBounds
-  , stMazeInnerEdges
+  , stMazeInnerWalls
   , stMazeNeighborCoords
   , stMazeOpenCoordDir
-  , stMazeOpenEdge
+  , stMazeOpenWall
     -- * Immutable maze
   , IMaze
   , freezeSTMaze
@@ -52,7 +52,7 @@ data Cell = Cell { cellOpenRight :: Bool
 newCell :: Cell
 newCell = Cell False False
 
--- | The location of a cell within a maze is just a pair @(row, col)@ (@0@-indexed).
+-- | The location of a cell within a maze.
 data Coord = C { coordRow :: Word32
                  -- ^ @0@-indexed row of coordinate
                , coordCol :: Word32
@@ -60,26 +60,31 @@ data Coord = C { coordRow :: Word32
                }
   deriving (Show, Eq, Ord, Ix)
 
--- | Unique identifier for an edge, or wall, in a maze.
-data Edge = EdgeRight Coord
-          | EdgeDown Coord
+-- | Unique identifier for a wall separating two cells of a maze. Note that in
+-- the context of a particular maze, a wall could be either "on" or "off" -- if
+-- it is off, then a player can cross it, and if it is on, then they cannot.
+data Wall = WallRight Coord
+          | WallDown Coord
   deriving (Show, Eq, Ord)
 
--- | Get the coordinate of an edge id.
-edgeCoord :: Edge -> Coord
-edgeCoord (EdgeRight pos) = pos
-edgeCoord (EdgeDown  pos) = pos
+-- | Get the coordinate of a wall. (internal)
+wallCoord :: Wall -> Coord
+wallCoord (WallRight pos) = pos
+wallCoord (WallDown  pos) = pos
 
--- | Get the direction of an edge id.
-edgeDirection :: Edge -> Direction
-edgeDirection (EdgeRight _) = DRight
-edgeDirection (EdgeDown  _) = DDown
+-- | Get the neighbors on either side of a wall.
+wallNeighbors :: Wall -> (Coord, Coord)
+wallNeighbors e = (pos, neighborCoord dir pos)
+  where pos = wallCoord e
+        dir = wallDirection e
 
--- | Get the neighbors on either side of an edge.
-edgeNeighbors :: Edge -> (Coord, Coord)
-edgeNeighbors e = (pos, neighborCoord dir pos)
-  where pos = edgeCoord e
-        dir = edgeDirection e
+-- | Get the direction of a wall. Either returns 'DRight' or 'DDown'. Use in
+-- conjunction with @wallNeighbors@. In particular, if @wallNeighbors wall@
+-- returns @(c1, c2)@ and @wallDirection wall@ returns @DRight@, that means that
+-- @c2@ lies to the right of @c1@, and @wall@ is the wall that separates them.
+wallDirection :: Wall -> Direction
+wallDirection (WallRight _) = DRight
+wallDirection (WallDown  _) = DDown
 
 -- | Represents a direction relating one cell to another.
 data Direction = DUp | DDown | DLeft | DRight
@@ -102,15 +107,15 @@ neighborCoord dir (C r c) = case dir of
   DLeft  -> C r (c-1)
   DRight -> C r (c+1)
 
--- | Get the edge identifier of a cell in a particular direction. Since we don't
--- check bounds, this can return an edge outside the maze (including with a
+-- | Get the wall identifier of a cell in a particular direction. Since we don't
+-- check bounds, this can return an wall outside the maze (including with a
 -- negative coordinate), so always use in conjunction with 'stMazeInBounds'.
-neighborEdge :: Direction -> Coord -> Edge
-neighborEdge dir (C r c) = case dir of
-  DUp    -> EdgeDown  (C (r-1) c)
-  DDown  -> EdgeDown  (C r c)
-  DLeft  -> EdgeRight (C r (c-1))
-  DRight -> EdgeRight (C r c)
+neighborWall :: Direction -> Coord -> Wall
+neighborWall dir (C r c) = case dir of
+  DUp    -> WallDown  (C (r-1) c)
+  DDown  -> WallDown  (C r c)
+  DLeft  -> WallRight (C r (c-1))
+  DRight -> WallRight (C r c)
 
 -- | Mutable maze in 'ST' monad.
 newtype STMaze s = STMaze { stMazeArray :: STArray s Coord Cell }
@@ -132,14 +137,14 @@ stMazeInBounds maze pos = do
   bounds <- stMazeBounds maze
   return $ inRange bounds pos
 
--- | Get a list of all inner edges in an 'STMaze', with neighbors on each side.
-stMazeInnerEdges :: STMaze s -> ST s [Edge]
-stMazeInnerEdges maze = do
+-- | Get a list of all inner walls in an 'STMaze', with neighbors on each side.
+stMazeInnerWalls :: STMaze s -> ST s [Wall]
+stMazeInnerWalls maze = do
   (_, (C hiR hiC)) <- stMazeBounds maze
   return $
-    [ EdgeRight (C (fromInteger r) (fromInteger c))
+    [ WallRight (C (fromInteger r) (fromInteger c))
     | r <- [0..toInteger hiR], c <- [0..(toInteger hiC)-1] ] ++
-    [ EdgeDown (C (fromInteger r) (fromInteger c))
+    [ WallDown (C (fromInteger r) (fromInteger c))
     | r <- [0..(toInteger hiR)-1], c <- [0..toInteger hiC] ]
 
 -- | Get the neighbor coordinate in a particular direction of an 'STMaze', if
@@ -179,8 +184,8 @@ stMazeOpenCoordDir maze pos dir = do
 -- | Open up one of the walls surrounding a cell, given the cell coordinate and
 -- the direction of the wall relative to that coordinate. If the direction leads
 -- us to a cell outside the maze, do nothing, but return 'False'.
-stMazeOpenEdge :: STMaze s -> Edge -> ST s Bool
-stMazeOpenEdge maze e = stMazeOpenCoordDir maze (edgeCoord e) (edgeDirection e)
+stMazeOpenWall :: STMaze s -> Wall -> ST s Bool
+stMazeOpenWall maze e = stMazeOpenCoordDir maze (wallCoord e) (wallDirection e)
 
 -- | Immutable maze.
 newtype IMaze = IMaze { iMazeArray :: Array Coord Cell }
