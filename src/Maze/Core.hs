@@ -227,7 +227,7 @@ iMazeMove _ _ _ = Nothing
 -- | Extract a list of lists of coordinates from an 'IMaze', in row-major order.
 iMazeCoords :: IMaze -> [[Coord]]
 iMazeCoords maze = rows
-  where (numRows, numCols) = iMazeDims maze
+  where (_, (C hiR hiC)) = iMazeBounds maze
         rows = [ [ C (fromInteger r) (fromInteger c)
-                 | c <- [0..toInteger numCols-1] ]
-               | r <- [0..toInteger numRows-1] ]
+                 | c <- [0..toInteger hiC] ]
+               | r <- [0..toInteger hiR] ]
