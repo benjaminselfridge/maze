@@ -17,8 +17,10 @@ recursiveBacktracking :: RandomGen g => g -> Word32 -> Word32 -> (IMaze, g)
 recursiveBacktracking g rows cols = runST $ do
   gRef         <- newSTRef g
   maze         <- newSTMaze rows cols
-  cellsVisited <- newArray ((0, 0), (rows-1, cols-1)) False
-  recursiveBacktracking' gRef maze (0,0) cellsVisited
+  mazeBounds   <- stMazeBounds maze
+  cellsVisited <- newArray mazeBounds False
+  let (coord:_) = range mazeBounds
+  recursiveBacktracking' gRef maze coord cellsVisited
   imaze        <- freezeSTMaze maze
   g'           <- readSTRef gRef
   return (imaze, g')
@@ -35,8 +37,9 @@ recursiveBacktracking g rows cols = runST $ do
           -- Mark this coordinate as visited.
           writeArray cellsVisited pos True
           -- Get the neighbors of this cell.
-          neighbors <- stMazeNeighbors maze pos
-          -- Shuffle the list of neighbors.
+          neighbors <- stMazeNeighborCoords maze pos
+          -- Shuffle the list of neighbors, writing back the new random
+          -- generator when we're done.
           g <- readSTRef gRef
           let (neighbors', g') = shuffle neighbors g
           writeSTRef gRef g'

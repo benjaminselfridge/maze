@@ -2,18 +2,18 @@ module Maze
   ( -- * Maze type
     IMaze
   , iMazeDims
-  , iMazeCanMove
-  , iMazeToList
+  , iMazeBounds
+  , iMazeMove
+  , iMazeCoords
   , Coord
-  , neighborCoord
-  , Cell
-  , cellOpenDown
-  , cellOpenRight
+  , coordRow
+  , coordCol
   , Direction(..)
     -- * Maze construction algorithms
   , recursiveBacktracking
   , binaryTree
   , kruskal
+  , prim
   ) where
 
 import Maze.Core

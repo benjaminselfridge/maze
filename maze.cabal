@@ -27,6 +27,7 @@ library
                       Maze.Algorithms.BinaryTree
                       Maze.Algorithms.Kruskal
                       Maze.Algorithms.RecursiveBacktracking
+                      Maze.Algorithms.Prim
                       Maze.Core
                       Maze.Utils
 
@@ -42,6 +43,8 @@ library
                       brick >= 0.61,
                       combinat,
                       containers,
+                      extra,
+                      pqueue,
                       random,
                       time,
                       union-find,

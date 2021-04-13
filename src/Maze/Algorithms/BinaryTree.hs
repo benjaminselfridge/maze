@@ -6,6 +6,7 @@ import Maze.Core
 
 import Control.Monad ( forM_, when, void )
 import Control.Monad.ST
+import Data.Ix
 import Data.STRef
 import Data.Word
 import System.Random
@@ -16,7 +17,8 @@ binaryTree :: RandomGen g => g -> Word32 -> Word32 -> (IMaze, g)
 binaryTree g rows cols = runST $ do
   gRef <- newSTRef g
   maze <- newSTMaze rows cols
-  forM_ [ (r, c) | r <- [0..rows-1], c <- [0..cols-1] ] $ \pos -> do
+  coords <- range <$> stMazeBounds maze
+  forM_ coords $ \pos -> do
     g <- readSTRef gRef
     let (b, g') = random g
     if b

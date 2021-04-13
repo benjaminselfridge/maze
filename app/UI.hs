@@ -21,6 +21,7 @@ import Data.Word
 import qualified Data.Text as T
 import Text.Read (readMaybe)
 import qualified Data.Set as Set
+import Data.Maybe (isJust)
 
 maxRows :: Word32
 maxRows = 20
@@ -116,7 +117,6 @@ data GameState = GameState
   , _gsGen :: StdGen
   , _gsNewGameForm :: B.Form NewGameFormState MazeEvent Name
   , _gsGameMode :: GameMode
-  , _gsVisitedCoords :: Set.Set Coord
   , _gsStartTime :: UTCTime
     -- ^ Time when the current game was started
   , _gsCurrentTime :: UTCTime
@@ -133,13 +133,17 @@ gameState :: StdGen
           -> UTCTime
           -> UTCTime
           -> GameState
+gameState _ numRows numCols _ _ _ _
+  | numRows <= 0 = error "PANIC: gameState called with non-positive number of rows"
+  | numCols <= 0 = error "PANIC: gameState called with non-positive number of columns"
 gameState g numRows numCols alg size startTime currentTime =
   let (maze, g') = case alg of
         RecursiveBacktracking -> recursiveBacktracking g numRows numCols
         BinaryTree            -> binaryTree g numRows numCols
         Kruskal               -> kruskal g numRows numCols
       ngf = newGameForm (NewGameFormState numRows numCols alg size)
-  in GameState maze (0, 0) g' ngf (GameMode InProgress NoDialog) Set.empty startTime currentTime
+      (topLeft, _) = iMazeBounds maze
+  in GameState maze topLeft g' ngf (GameMode InProgress NoDialog) startTime currentTime
 
 gsNewGame :: GameState -> GameState
 gsNewGame gs = gameState g numRows numCols alg size st ct
@@ -189,69 +193,78 @@ drawMaze :: GameState -> B.Widget n
 drawMaze gs = B.vBox $
   (B.hBox . fmap (drawCell gs)) topRow :
   fmap (B.hBox . fmap (drawCell gs)) rows
-  where (topRow:rows) = iMazeToList (gs ^. gsMaze)
+  where (topRow:rows) = iMazeCoords (gs ^. gsMaze)
         drawCell = case B.formState (gs ^. gsNewGameForm) ^. ngfSize of
           Big -> drawCellBig
           Small -> drawCellSmall
 
-drawCellSmall :: GameState -> (Coord, Cell) -> B.Widget n
-drawCellSmall gs ((r, c), cell) = B.vBox
+drawCellSmall :: GameState
+              -> Coord
+              -- ^ the cell to draw
+              -> B.Widget n
+drawCellSmall gs coord = B.vBox
   [ B.str $ tS
   , B.hBox [B.str lS, B.withAttr attr (B.str [dC]), B.str [rC]]
   ]
-  where pos = gs ^. gsPos
-        dC = if cellOpenDown  cell then ' ' else '_'
-        rC = if cellOpenRight cell then ' ' else '|'
-        lS = if c == 0 then "|" else ""
-        tS = if r == 0
-             then if c == 0 then " _ \n" else "_ \n"
+  where (row, col) = (coordRow coord, coordCol coord)
+        playerPos = gs ^. gsPos
+        maze = gs ^. gsMaze
+        (_, bottomRight) = iMazeBounds maze
+        dC = if isJust (iMazeMove maze coord DDown) then ' ' else '_'
+        rC = if isJust (iMazeMove maze coord DRight) then ' ' else '|'
+        lS = if col == 0 then "|" else ""
+        tS = if row == 0
+             then if col == 0 then " _ \n" else "_ \n"
              else ""
-        isFinish = (r, c) == (numRows-1, numCols-1)
-        isSolved = pos == (numRows-1, numCols-1)
-        attr = if pos == (r, c)
+        isFinish = coord == bottomRight
+        isSolved = playerPos == bottomRight
+        isPlayerPos = playerPos == coord
+        attr = if isPlayerPos
                then if isFinish
                     then "solved"
                     else "pos"
                else if isFinish
                     then "finish"
                     else "blank"
-        (numRows, numCols) = iMazeDims (gs ^. gsMaze)
 
-drawCellBig :: GameState -> (Coord, Cell) -> B.Widget n
-drawCellBig gs ((r, c), cell) = B.vBox
+drawCellBig :: GameState -> Coord -> B.Widget n
+drawCellBig gs coord = B.vBox
   [ B.str $ topLeftBorder ++ topBorder
   , B.hBox
     [ B.str leftBorder
     , B.str " "
-    , B.withAttr attr $ B.str [mid]
+    , B.withAttr attr $ B.str [m]
     , B.str " "
-    , B.str [right]
+    , B.str [r]
     ]
   , B.hBox
     [ B.str leftBorder
-    , B.str [down , down , down]
-    , B.str [bottomRight]
+    , B.str [d , d , d]
+    , B.str [br]
     ]
   ]
-  where maze = gs ^. gsMaze
-        pos = gs ^. gsPos
-        mid = if (r, c) == pos then '*' else ' '
-        down  = if cellOpenDown  cell then ' ' else '_'
-        right = if cellOpenRight cell then ' ' else '|'
-        bottomRight = if cellOpenRight cell then ' ' else '|'
-        leftBorder = if c == 0 then "|" else ""
-        topBorder = if r == 0 then "___ " else ""
-        topLeftBorder = if (r == 0 && c == 0) then " " else ""
-        isPos = (r, c) == pos
-        isStart = r == 0 && c == 0
-        isFinish = r == numRows-1 && c == numCols-1
-        isVisited = (r, c) `Set.member` (gs ^. gsVisitedCoords)
-        attr = case (isStart, isFinish, isPos) of
+  where (row, col) = (coordRow coord, coordCol coord)
+        playerPos = gs ^. gsPos
+        maze = gs ^. gsMaze
+        (topLeft, bottomRight) = iMazeBounds maze
+
+        m = if coord == playerPos then '*' else ' '
+        d = if isJust (iMazeMove maze coord DDown) then ' ' else '_'
+        r = if isJust (iMazeMove maze coord DRight) then ' ' else '|'
+        br = if isJust (iMazeMove maze coord DRight) then ' ' else '|'
+
+        leftBorder = if col == 0 then "|" else ""
+        topBorder = if row == 0 then "___ " else ""
+        topLeftBorder = if coord == topLeft then " " else ""
+
+        isPlayerPos = coord == playerPos
+        isStart = coord == topLeft
+        isFinish = coord == bottomRight
+        attr = case (isStart, isFinish, isPlayerPos) of
           (True, _, _) -> "start"
           (_, True, True) -> "solved"
           (_, True, False) -> "finish"
           _ -> "blank"
-        (numRows, numCols) = iMazeDims maze
 
 secondsElapsed :: GameState -> Int
 secondsElapsed gs = floor $ nominalDiffTimeToSeconds $
@@ -276,18 +289,17 @@ help = B.hBox
   ]
 
 isSolved :: GameState -> Bool
-isSolved gs = let (numRows, numCols) = iMazeDims (gs ^. gsMaze)
-              in gs ^. gsPos == (numRows-1, numCols-1)
+isSolved gs = let (_, bottomRight) = iMazeBounds (gs ^. gsMaze)
+              in gs ^. gsPos == bottomRight
 
 gsMove :: GameState -> Direction -> GameState
 gsMove gs0 dir
-  | iMazeCanMove (gs0 ^. gsMaze) (gs0 ^. gsPos) dir =
-    let gs1 = gs0 & gsPos %~ neighborCoord dir
+  | Just nPos <- iMazeMove (gs0 ^. gsMaze) (gs0 ^. gsPos) dir =
+    let gs1 = gs0 & gsPos .~ nPos
         gs2 = gs1 & gsGameMode . gmSolvingState .~ case isSolved gs1 of
           True -> Solved (secondsElapsed gs0)
           False -> InProgress
-        gs3 = gs2 & gsVisitedCoords %~ Set.insert (gs2 ^. gsPos)
-    in gs3
+    in gs2
   | otherwise = gs0
 
 handleEvent :: GameState
@@ -328,7 +340,6 @@ attrMap _ = B.attrMap V.defAttr
   [ ("start", V.defAttr)
   , ("finish", V.withBackColor V.defAttr V.red)
   , ("solved", V.withBackColor V.defAttr V.green)
-  , ("visited", V.withBackColor V.defAttr V.yellow)
   , ("blank", V.defAttr)
   , ("pos", V.withBackColor V.defAttr V.blue)
   , (B.formAttr, V.defAttr)

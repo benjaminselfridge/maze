@@ -20,23 +20,17 @@ import System.Random
 kruskal :: RandomGen g => g -> Word32 -> Word32 -> (IMaze, g)
 kruskal g numRows numCols = runST $ do
   maze <- newSTMaze numRows numCols
-  edges <- stMazeEdgeIds maze
+  edges <- stMazeInnerEdges maze
   let (edges', g') = shuffle edges g
-  k <- newKruskal numRows numCols
+  k <- newKruskal maze
   forM_ edges' $ \e -> do
-    let pos     = edgeIdCoord e
-        edgeDir = edgeIdDirection e
-        nPos    = neighborCoord edgeDir pos
-    nPosInBounds <- stMazeInBounds maze nPos
-    case nPosInBounds of
-      True -> do
-        sameSet <- kruskalSameSet k pos nPos
-        case sameSet of
-          True -> return ()
-          False -> do
-            stMazeOpen maze pos edgeDir
-            kruskalUnion k pos nPos
-      False -> return ()
+    let (pos, pos') = edgeIdNeighbors e
+    sameSet <- kruskalSameSet k pos pos'
+    case sameSet of
+      True -> return ()
+      False -> do
+        stMazeOpenEdge maze e
+        kruskalUnion k pos pos'
   imaze <- freezeSTMaze maze
   return (imaze, g')
 
@@ -47,9 +41,10 @@ data K s = K { coordPoint :: Map.Map Coord (Point s Coord) }
 
 -- | Create a fresh 'Kruskal' where each coord is in a singleton set with a
 -- distinct id.
-newKruskal :: Word32 -> Word32 -> ST s (K s)
-newKruskal rows cols = do
-  let coords = range ((0,0), (rows-1,cols-1))
+newKruskal :: STMaze s -> ST s (K s)
+newKruskal maze = do
+  mazeBounds <- stMazeBounds maze
+  let coords = range mazeBounds
   pairs <- forM coords $ \pos -> do
     pt <- fresh pos
     return (pos, pt)
