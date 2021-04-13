@@ -78,7 +78,7 @@ newGameForm = B.newForm
     B.editShowableFieldWithValidate ngfNumRows NGFNumRows validRow
   , B.padBottom (B.Pad 1) . label ("# cols (<=" ++ show maxCols ++ "): ") B.@@=
     B.editShowableFieldWithValidate ngfNumCols NGFNumCols validCol
-  , B.padBottom (B.Pad 1) . label "# algorithm: " B.@@= B.radioField ngfAlgorithm
+  , B.padBottom (B.Pad 1) . label "algorithm: " B.@@= B.radioField ngfAlgorithm
     [ (RecursiveBacktracking, NGFRecursiveBacktracking, "recursive backtracking")
     , (BinaryTree, NGFBinaryTree, "binary tree")
     , (Kruskal, NGFKruskal, "kruskal's algorithm")
