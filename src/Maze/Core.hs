@@ -176,7 +176,7 @@ stMazeOpen maze pos dir = do
   when inBounds $ do
     let arr = stMazeArray maze
     cell <- readArray arr pos
-    nCell <- readArray arr pos
+    nCell <- readArray arr nPos
     case dir of
       DUp    -> writeArray arr nPos (nCell { cellOpenDown  = True })
       DDown  -> writeArray arr pos  (cell  { cellOpenDown  = True })
