@@ -13,7 +13,6 @@ module Maze
   , recursiveBacktracking
   , binaryTree
   , kruskal
-  , prim
   ) where
 
 import Maze.Core

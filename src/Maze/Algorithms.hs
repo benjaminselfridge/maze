@@ -4,7 +4,6 @@ module Maze.Algorithms
   ( recursiveBacktracking
   , binaryTree
   , kruskal
-  , prim
   ) where
 
 import Maze.Algorithms.BinaryTree
