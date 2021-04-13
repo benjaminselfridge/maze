@@ -164,10 +164,6 @@ mazeApp = B.App
   , B.appAttrMap = attrMap
   }
 
-mazeHeight :: IMaze -> Int
-mazeHeight maze = let (numRows, _) = iMazeDims maze
-                  in fromIntegral (numRows * 2 + 2)
-
 draw :: GameState -> [B.Widget Name]
 draw gs = case gs ^. gsGameMode ^. gmDialog of
   NoDialog -> [ drawMain gs ]

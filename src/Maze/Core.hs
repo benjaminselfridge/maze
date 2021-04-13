@@ -27,7 +27,6 @@ module Maze.Core
     -- * Immutable maze
   , IMaze
   , freezeSTMaze
-  , iMazeDims
   , iMazeBounds
   , iMazeMove
   , iMazeCoords
@@ -189,11 +188,6 @@ newtype IMaze = IMaze { iMazeArray :: Array Coord Cell }
 -- | Freeze a mutable 'STMaze' to an immutable 'IMaze'.
 freezeSTMaze :: STMaze s -> ST s IMaze
 freezeSTMaze (STMaze a) = IMaze <$> freeze a
-
--- | Get the number of (rows, columns in an 'IMaze'.
-iMazeDims :: IMaze -> (Word32, Word32)
-iMazeDims maze = let (C _ _, C hiR hiC) = bounds (iMazeArray maze)
-                 in (hiR+1, hiC+1)
 
 -- | Get the bounds of an 'IMaze' (top-left and bottom-right corners).
 iMazeBounds :: IMaze -> (Coord, Coord)

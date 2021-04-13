@@ -1,7 +1,6 @@
 module Maze
   ( -- * Maze type
     IMaze
-  , iMazeDims
   , iMazeBounds
   , iMazeMove
   , iMazeCoords
